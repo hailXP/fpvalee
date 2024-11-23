@@ -1,25 +1,25 @@
 from flask import Flask, request, jsonify, abort
+import flask_cors
 import chess
 import chess.engine
 import os
+import logging
 
 app = Flask(__name__)
+app.logger.setLevel(logging.WARNING)
+flask_cors.CORS(app)
 
-STOCKFISH_PATH = "stockfish.exe"
+STOCKFISH_PATH = "Model/stockfish.exe"
 
 if not os.path.exists(STOCKFISH_PATH):
     raise FileNotFoundError(f"Stockfish executable not found at path: {STOCKFISH_PATH}")
 
 stockfish_engine = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
 
-@app.route("/threat", methods=['POST'])
-def get_threat_move():
-    try:
-        data = request.get_json()
-        fen = data['fen']
-        board = chess.Board(fen)
-    except ValueError as e:
-        abort(400, description=f"Invalid FEN: {e}")
+@app.route("/threats", methods=['GET'])
+def threats():
+    fen = request.args.get('fen')
+    board = chess.Board(fen)
     
     board.turn = not board.turn
 
@@ -44,14 +44,10 @@ def get_threat_move():
     except Exception as e:
         abort(500, description=f"Engine error: {e}")
 
-@app.route("/eval", methods=['POST'])
-def evaluate_position():
-    try:
-        data = request.get_json()
-        fen = data['fen']
-        board = chess.Board(fen)
-    except ValueError as e:
-        abort(400, description=f"Invalid FEN: {e}")
+@app.route("/evaluate", methods=['GET'])
+def evaluate():
+    fen = request.args.get('fen')
+    board = chess.Board(fen)
 
     try:
         info = stockfish_engine.analyse(board, chess.engine.Limit(depth=12))
@@ -68,11 +64,6 @@ def evaluate_position():
         return jsonify(score=eval_score)
     except Exception as e:
         abort(500, description=f"Engine error: {e}")
-
-@app.route("/shutdown", methods=['POST'])
-def shutdown():
-    stockfish_engine.quit()
-    return jsonify(message="Stockfish engine shut down successfully")
 
 if __name__ == "__main__":
     app.run(debug=True)

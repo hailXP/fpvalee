@@ -6,7 +6,10 @@ import os
 import logging
 
 app = Flask(__name__)
-app.logger.setLevel(logging.WARNING)
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
+app.logger.setLevel(logging.ERROR)
 flask_cors.CORS(app)
 
 STOCKFISH_PATH = "Model/stockfish.exe"
@@ -34,7 +37,7 @@ def threats():
                 "from": from_square,
                 "to": to_square,
                 "color": 'red',
-                "opacity": 0.6
+                "opacity": 0.4
             },
             "node": True,
             "persistent": False
